@@ -127,6 +127,13 @@
      <item row="3" column="1">
       <widget class="QComboBox" name="comboBox"/>
      </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="gameTypeLabel">
+       <property name="text">
+        <string>Game type:</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>

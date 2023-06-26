@@ -22,13 +22,19 @@ public:
 
 class baseReroute {
 public:
-    void init(wchar_t PName[], DWORD *hOffsets, DWORD *mhOffsets, DWORD *dOffsets, int hLen, int mhLen, int dLen) {
+    void init(wchar_t PName[]) {
         wcscpy(PrName, PName);
-        //copy(hOffsets, hOffsets + hLen, back_inserter(HpOffsets));
-        //copy(mhOffsets, mhOffsets + mhLen, back_inserter(MHpOffsets));
-        //copy(dOffsets, dOffsets + dLen, back_inserter(DeathOffsets));
     }
     int attachProc();
+
+    virtual void setAddresses();
+    virtual void injectRoutine() {};
+    virtual void getStats() {};
+    virtual int injAssert(char assertChar, UINT64 Addr) { return 0; };
+
+    UINT64 HookAddr;
+    char InjAssertChar = 0;
+    UINT64 BaseAddress = 0;
 protected:
     // Proccess name
     wchar_t PrName[20];
@@ -36,13 +42,9 @@ protected:
     DWORD PID = 0;
     HANDLE hProcess = 0;
     // Address for base of the module and for where the damage is stored
-    UINT64 BaseAddress = 0;
     UINT64 DmgAddress = 0;
     // Address of HP (technically I think this is the base player structure address)
     UINT64 CharAddress = 0;
-    //std::vector<DWORD> HpOffsets;
-    //std::vector<DWORD> MHpOffsets;
-    //std::vector<DWORD> DeathOffsets;
     // Multi-level pointer variables for HP and death count
     UINT64 finalHP = 0;
     UINT64 finalMaxHP = 0;
@@ -60,9 +62,7 @@ protected:
     // Function that obtains the address of a multi-level pointer
     UINT64 CalcPtr_Ext(HANDLE hProc, UINT64 base, DWORD offs[], int lvl, int bit);
 
-    virtual void setAddresses();
     UINT64 FindPattern(std::byte *data, UINT64 pBaseAddress, std::byte* pbMask, const char* pszMask, DWORD nLength);
-    UINT64 AllocNearbyMemory(HANDLE hProc, UINT64 nearThisAddr);
 
 private:
     //byte* FindPattern(HANDLE hProc, byte* pBaseAddress, byte* pbMask, const char* pszMask, size_t nLength);
@@ -70,9 +70,9 @@ private:
 
 class dsiiReroute : public baseReroute {
 public:
-    virtual void injectRoutine();
-    virtual void getStats();
-    virtual int injAssert(char assertChar, UINT64 Addr);
+    void injectRoutine() override;
+    void getStats() override;
+    int injAssert(char assertChar, UINT64 Addr) override;
     void setAddresses() override;
 
     double dmgRecStr;
@@ -86,8 +86,6 @@ public:
     signed long int newEnHP;
     signed long int maxEnHP;
 
-    const char InjAssertChar = 0xE9;
-    UINT64 HookAddr;
 private:
     unsigned int stats[3] = { 0 };
 
@@ -109,8 +107,7 @@ public:
     void setAddresses() override;
     void injectRoutine() override;
 
-    const char InjAssertChar = 0x49;
-    UINT64 HookAddr;
+    //const char InjAssertChar = 0x49;
 
 private:
 

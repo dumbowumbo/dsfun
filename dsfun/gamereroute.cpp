@@ -90,6 +90,7 @@ UINT64 baseReroute::CalcPtr_Ext(HANDLE hProc, UINT64 base, DWORD offs[], int lvl
     return product;
 }
 
+// Array of bytes scan function to get the address of desired instructions
 UINT64 baseReroute::FindPattern(std::byte *data, UINT64 pBaseAddress, std::byte pbMask[], const char* pszMask, DWORD nLength)
 {
     auto DataCompare = [](std::byte* data, const std::byte* mask, const char* cmask, std::byte chLast, std::size_t iEnd) -> bool {
@@ -110,11 +111,7 @@ UINT64 baseReroute::FindPattern(std::byte *data, UINT64 pBaseAddress, std::byte 
     std::byte chLast = pbMask[iEnd - 1];
 
     auto pEnd = pBaseAddress + nLength - strlen(pszMask);
-    //std::byte data[256];
     for (; pBaseAddress < pEnd; ++pBaseAddress) {
-        if (pBaseAddress == stAdrress + 0x40E284)
-            printf("");
-        //ReadProcessMemory(hProc, (LPCVOID)pBaseAddress, data, iEnd, 0);
         if (DataCompare(data, pbMask, pszMask, chLast, iEnd)) {
             return pBaseAddress;
         }
@@ -124,32 +121,9 @@ UINT64 baseReroute::FindPattern(std::byte *data, UINT64 pBaseAddress, std::byte 
     return 0;
 }
 
+// Base class function definition left so compiler doesn't complain.
 void baseReroute::setAddresses() {
-    // Get the addresses of the multi-level pointer variables
-    //finalHP = CalcPtr_Ext(hProcess, CharAddress, HpOffsets.data(), HpOffsets.size());
-    //finalMaxHP = CalcPtr_Ext(hProcess, CharAddress, MHpOffsets.data(), MHpOffsets.size());
-    //finalDeath = CalcPtr_Ext(hProcess, CharAddress, DeathOffsets.data(), DeathOffsets.size());
-}
 
-UINT64 baseReroute::AllocNearbyMemory(HANDLE hProc, UINT64 nearThisAddr)
-{
-    UINT64 begin = nearThisAddr;
-    UINT64 end = nearThisAddr + 0x7FFF0000;
-    MEMORY_BASIC_INFORMATION mbi{};
-
-    auto curr = begin;
-
-    while (VirtualQueryEx(hProc, (LPCVOID)curr, &mbi, sizeof(mbi)))
-    {
-        if (mbi.State == MEM_FREE)
-        {
-            UINT64 addr = (UINT64)VirtualAllocEx(hProc, mbi.BaseAddress, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-            if (addr) return addr;
-        }
-        curr += mbi.RegionSize;
-    }
-
-    return 0;
 }
 
 void dsiiReroute::setAddresses() {
@@ -230,15 +204,9 @@ void dsiiReroute::injectRoutine() {
     memcpy(InjectShellcode + injLen, &pVar, sizeof(DWORD));
     injLen += sizeof(DWORD);
     memcpy(InjectShellcode + injLen, iCode5, 7);
-    //injLen += 7;
-    //HookAddr += 0x06;
-    //memcpy(InjectShellcode + injLen, &HookAddr, sizeof(DWORD));
-    //HookAddr -= 0x06;
-    //injLen += sizeof(DWORD);
-    //memcpy(InjectShellcode + injLen, iCode6, 2);
-    //injLen += strlen(iCode5);
 
     // Inject the code
+    DmgAddress = pVar - 8;
     DWORD playerOffs[] = { 0x74, 0x00 };
     DWORD playerPointer = CalcPtr_Ext(hProcess, CharAddress, playerOffs, 2, 0);
     WriteProcessMemory(hProcess, (LPVOID)(pInjectedFunction), InjectShellcode, sizeof(InjectShellcode), 0);
@@ -248,11 +216,10 @@ void dsiiReroute::injectRoutine() {
     std::ofstream ofile("address.txt", std::ofstream::trunc);
     ofile << pVar;
     ofile.close();
-    DmgAddress = pVar-8;
 }
 
 int dsiiReroute::injAssert(char assertChar, UINT64 Addr) {
-    unsigned char resAssert = 0;
+    char resAssert = 0;
     // check first whether the code is already injected
     ReadProcessMemory(hProcess, (LPCVOID)(Addr), &resAssert, 1, 0);
     if (resAssert != assertChar) return 0;

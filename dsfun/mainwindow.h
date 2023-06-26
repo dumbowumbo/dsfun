@@ -2,6 +2,7 @@
 
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
+#define NOMINMAX
 
 #include <QMainWindow>
 #include <QWidget.h>
@@ -13,6 +14,8 @@
 #include <IXWebSocket.h>
 #include <string.h>
 #include <sstream>
+#include <limits>
+#include <typeinfo>
 #include "timedRead.h"
 
 namespace Ui {
@@ -28,7 +31,7 @@ public:
 
 protected:
     Ui::MainWindow* ui;
-    std::shared_ptr<dsiisotfsReroute> gameInstance = std::make_shared<dsiisotfsReroute>();
+    std::shared_ptr<baseReroute> gameInstance;
 
 private:
     QStringListModel* model;

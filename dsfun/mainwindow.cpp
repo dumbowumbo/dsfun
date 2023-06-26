@@ -1,47 +1,69 @@
 #include "mainwindow.h"
 #include "../ui/ui_mainwindow.h"
 
+// Main window function
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // Add items to combo box for game type.
+    ui->comboBox->addItem("DSII");
+    ui->comboBox->addItem("DSII:SotFS");
 }
 
+// Main window destructor.
 MainWindow::~MainWindow()
 {
     delete ui;
-    //if(timer != NULL)
-        //delete timer;
 }
 
+// Procedure when attach button is clicked.
 void MainWindow::on_attachButton_clicked()
 {
-    // Offsets for HP
-    //DWORD HpOffsets[] = { 0x74, 0xB8, 0x08, 0x14, 0x04, 0x04, 0xFC };
-    //DWORD MaxHpOffsets[] = { 0x4C, 0x84, 0x40, 0x78, 0x1C, 0x104, 0x104 };
-    // Offsets for deaths
-    //DWORD DeathOffsets[] = { 0x74, 0xC, 0x08, 0x08, 0x10, 0x04, 0x1E0 };
 
-    DWORD HpOffsets[2] = { 0x74, 0xFC };
-    DWORD MaxHpOffsets[2] = { 0x74, 0x104 };
-    DWORD DeathOffsets[3] = { 0x74, 0x378, 0x1A0 };
-
-    //DWORD HpOffsets[2] = { 0xD0, 0x168 };
-    //DWORD MaxHpOffsets[2] = { 0xD0, 0x170 };
-    //DWORD DeathOffsets[3] = { 0xD0, 0x268, 0x364 };
-
+    // Program name to attach to.
     wchar_t PrName[] = L"DarkSoulsII.exe";
-    int hOffSize = sizeof(HpOffsets) / sizeof(DWORD);
-    int mhOffSize = sizeof(MaxHpOffsets) / sizeof(DWORD);
-    int dOffSize = sizeof(DeathOffsets) / sizeof(DWORD);
+    // Game type selection variable.
+    int gameType = 0;
+
+    // Determine which game and create shared instance of class so it would persist outside of this function.
+    // InjAssertChar is for asserting whether there is an existing injection.
+    switch (ui->comboBox->currentIndex()) {
+    case 0:
+        gameType = 0;
+        gameInstance = std::make_shared<dsiiReroute>();
+        gameInstance->InjAssertChar = 0xE8;
+        break;
+    case 1:
+        gameType = 1;
+        gameInstance = std::make_shared<dsiisotfsReroute>();
+        gameInstance->InjAssertChar = 0x49;
+        break;
+    }
     
-    gameInstance->init(PrName, HpOffsets, MaxHpOffsets, DeathOffsets, hOffSize, mhOffSize, dOffSize); //0x01150414
+    // Init the game class.
+    gameInstance->init(PrName);
+    // Attach to game
     int ret = gameInstance->attachProc();
-    if (!ret) {
+    // Check whether the right version of the game is running.
+    if ((UINT64)std::numeric_limits<DWORD>::max() > gameInstance->BaseAddress && gameType) {
+        QMessageBox msgBox;
+        msgBox.setText("Attach fail. The game running is 32-bit, but you selected SotFS.");
+        int ret = msgBox.exec();
+    }
+    else if ((UINT64)std::numeric_limits<DWORD>::max() < gameInstance->BaseAddress && !gameType) {
+        QMessageBox msgBox;
+        msgBox.setText("Attach fail. The game running is 64-bit, but you selected base DSII.");
+        int ret = msgBox.exec();
+    }
+    else if (!ret) {
+        // If the game is attached, grab the addresses for reading health and injection.
         gameInstance->setAddresses();
         ui->attachLabel->setText("Attached.");
         attachFlag = 1;
+        // Make sure the game is not already injected.
         if (gameInstance->injAssert(gameInstance->InjAssertChar, gameInstance->HookAddr)) {
             ui->injectLabel->setText("Injected.");
             injectFlag = 1;
@@ -59,6 +81,7 @@ void MainWindow::on_attachButton_clicked()
 }
 
 void MainWindow::on_scanButton_clicked() {
+    // Set up variable for HTTP connection.
     ix::HttpResponsePtr out;
     ix::HttpClient httpClient;
     ix::HttpRequestArgsPtr args = httpClient.createRequest();
@@ -67,6 +90,7 @@ void MainWindow::on_scanButton_clicked() {
     std::string header = "/deviceconfig";
     std::string fullurl = url + port + header;
 
+    // Get the devices from buttplug lite and put them in to the list
     out = httpClient.get(fullurl,args);
     std::vector<std::string> tokens = splitString(out.get()->body);
     // Create model
@@ -84,13 +108,16 @@ void MainWindow::on_scanButton_clicked() {
     // Glue model and view together
     ui->devicelistView->setModel(model);
 
+    // Make sure only single thing can be selected
     ui->devicelistView->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
+// Start button click function
 void MainWindow::on_goButton_clicked() {
     QString selectedTexts;
     QModelIndexList selectedIndexes;
 
+    // Inject if not injected.
     if (attachFlag && !injectFlag) {
         gameInstance->injectRoutine();
         ui->injectLabel->setText("Injected.");
@@ -104,22 +131,27 @@ void MainWindow::on_goButton_clicked() {
 
     if (injectFlag && attachFlag) {
         if (!runFlag) {
+            // Once injected, grab which device is selected
             if (ui->devicelistView->selectionModel() && ui->devicelistView->selectionModel()->selectedIndexes().size() > 0) {
                 selectedIndexes = ui->devicelistView->selectionModel()->selectedIndexes();
                 selectedTexts = selectedIndexes[0].data(Qt::DisplayRole).toString();
 
+                // Set up variables for websocket
                 std::string port = ui->portSpinBox->text().toStdString();
                 std::string url = "http://127.0.0.1:";
                 std::string header = "/haptic";
                 std::string fullurl = url + port + header;
                 int mode;
 
+                // Check which mode is desired
                 if (ui->receivedradioButton->isChecked()) mode = 0;
                 else if (ui->dealtradioButton->isChecked()) mode = 1;
                 else mode = -1;
 
+                // Parse selected device string
                 std::string token = selectedTexts.toStdString().substr(0, selectedTexts.toStdString().find(";"));
 
+                // Create a timer which reads stats every 100 ms.
                 timer = std::make_shared<timedRead>(fullurl, token, mode, gameInstance);
                 ui->goButton->setText("Started");
                 runFlag = 1;
@@ -140,6 +172,7 @@ void MainWindow::on_goButton_clicked() {
     }
 }
 
+// Helper function to split string.
 std::vector<std::string> MainWindow::splitString(const std::string& str) {
     std::vector<std::string> tokens;
 

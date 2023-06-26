@@ -42,6 +42,17 @@ set_target_properties(dsfun PROPERTIES
     MACOSX_BUNDLE ON
 )
 
+install(TARGETS dsfun)
+#install(TARGETS ZLIB LIBRARY)
+#install(PROGRAMS ../out/build/x64-debug/dsfun/zlib1.dll DESTINATION /bin)
+
+include(InstallRequiredSystemLibraries)
+set(CPACK_PACKAGE_VERSION_MAJOR "${dsfun_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${dsfun_VERSION_MINOR}")
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_SOURCE_GENERATOR "ZIP")
+include(CPack)
+
  # ...
  # target_link_libraries(${PROJECT_NAME} ... ${IXWEBSOCKET_LIBRARY}) # Cmake will automatically fail the generation if the lib was not found, i.e is set to NOTFOUND
 
