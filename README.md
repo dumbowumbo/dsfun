@@ -4,7 +4,7 @@ Download Buttplug Lite, wait for your device to appear, give it a tag and save c
 1. Start Dark Souls II and load your character. Make absolutely sure to wait for your character to load fully! Otherwise base pointer to character is not grabbed.
 2. Start the dsfun program.
 3. Choose which game you are running (base DSII or SotFS).
-4. Press attach and wait for text to change that it is attached.
+4. Press attach and wait for text to change that it is attached (if it fails, try to run dsfun as admin).
 5. Ensure the port is the same as in Buttplug Lite.
 6. Click on device scan and select the device which you want to use.
 7. Select the mode which you want.
