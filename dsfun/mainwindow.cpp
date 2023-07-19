@@ -9,8 +9,14 @@ MainWindow::MainWindow(QWidget* parent) :
     ui->setupUi(this);
 
     // Add items to combo box for game type.
-    ui->comboBox->addItem("DSII");
+    ui->comboBox->addItem("DSII Base");
     ui->comboBox->addItem("DSII:SotFS");
+
+    int val = ui->timeSlider->value();
+    ui->timeLabel->setText(QStringLiteral("%1 s").arg((float)val / 10));
+
+    val = ui->strSlider->value();
+    ui->strLabel->setText(QStringLiteral("%1\%").arg(val));
 }
 
 // Main window destructor.
@@ -153,6 +159,11 @@ void MainWindow::on_goButton_clicked() {
 
                 // Create a timer which reads stats every 100 ms.
                 timer = std::make_shared<timedRead>(fullurl, token, mode, gameInstance);
+                int val = ui->timeSlider->value();
+                timer->maxTime = val;
+                val = ui->strSlider->value();
+                timer->maxStr = val;
+
                 ui->goButton->setText("Started");
                 runFlag = 1;
             }
@@ -170,6 +181,20 @@ void MainWindow::on_goButton_clicked() {
             runFlag = 0;
         }
     }
+}
+
+void MainWindow::on_timeSlider_valueChanged() {
+    int val = ui->timeSlider->value();
+    ui->timeLabel->setText(QStringLiteral("%1 s").arg((float)val/10));
+    if(timer != nullptr)
+        timer->maxTime = val;
+}
+
+void MainWindow::on_strSlider_valueChanged() {
+    int val = ui->strSlider->value();
+    ui->strLabel->setText(QStringLiteral("%1\%").arg(val));
+    if (timer != nullptr)
+        timer->maxStr = val;
 }
 
 // Helper function to split string.

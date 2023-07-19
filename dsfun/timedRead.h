@@ -15,6 +15,9 @@ public:
     ~timedRead();
     QTimer* timer;
 
+    unsigned int maxTime = 50;
+    unsigned int maxStr = 50;
+
 public slots:
     void timerSlot();
 

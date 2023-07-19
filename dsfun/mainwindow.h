@@ -46,6 +46,8 @@ private slots:
     void on_scanButton_clicked();
     void on_goButton_clicked();
     void on_attachButton_clicked();
+    void on_timeSlider_valueChanged();
+    void on_strSlider_valueChanged();
 };
 
 #endif

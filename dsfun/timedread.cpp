@@ -48,13 +48,12 @@ void timedRead::timerSlot()
 {
 	//webSocket.send(devTag+":0.5");
 	static unsigned long int millisTimer = 0;
-	const int maxTime = 30;
 	static int vibDuration = 50;
 	gInstance->getStats();
 	if (vMode == 0 && gInstance->dmgRecStr > 0) {
 		millisTimer = 0;
 		vibDuration = (double)maxTime * gInstance->dmgRecStr;
-		std::string str = std::to_string(gInstance->dmgRecStr);
+		std::string str = std::to_string(gInstance->dmgRecStr*((double)maxStr/100));
 		if (!webSocket.send(devTag + ":" + str).success) {
 			QMessageBox msgBox;
 			msgBox.setText("Something is wrong with socket connection. Check port and restart.");
@@ -66,7 +65,7 @@ void timedRead::timerSlot()
 	if (vMode == 1 && gInstance->dmgDealtStr > 0) {
 		millisTimer = 0;
 		vibDuration = maxTime * gInstance->dmgDealtStr;
-		std::string str = std::to_string(gInstance->dmgDealtStr);
+		std::string str = std::to_string(gInstance->dmgDealtStr * ((double)maxStr / 100));
 		if (!webSocket.send(devTag + ":" + str).success) {
 			QMessageBox msgBox;
 			msgBox.setText("Something is wrong with socket connection. Check port and restart.");
